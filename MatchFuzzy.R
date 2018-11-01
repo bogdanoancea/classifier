@@ -35,8 +35,8 @@ match <- function(df1, df2){
 }
 
 
-#test the function, grab a coffe, takes a loooong time
-list = match(df1, df2)
+#test the function, be patient, takes a loooong time
+list <- match(df1, df2)
 
 
 ###### parallel version ########
@@ -45,30 +45,31 @@ library(parallel)
 df1 <<- read.csv("df1.csv")
 df2 <<- read.csv("df2.csv")
 
-df1 <<- df1[1:8,]
-df2 <<- df2[1:8,]
+#df1 <<- df1[1:8,]
+#df2 <<- df2[1:8,]
 
 
-pmatch <- function(ichunks){
+pmatch <- function(ichunk){
   df1$produs1 = as.character(df1$produs1)
   df2$produs2 = as.character(df2$produs2)
   
   lista = list()
-  for (i in ichunks){
-    lista[i] = ""
+  k = 1;
+  for (i in ichunk){
+    lista[k] = ""
     for (j in 1:nrow(df2)){
       init = FuzzMatcher$new()
       #compute the mathcing score
-      lista[[i]][j] = paste(init$Token_set_ratio(df1$produs1[i], df2$produs2[j]), df2$produs2[j]) 
+      lista[[k]][j] = paste(init$Token_set_ratio(df1$produs1[i], df2$produs2[j]), df2$produs2[j]) 
     }
+    k = k+1
   }
-  
   lista = lapply(lista, gtools::mixedsort, decreasing = TRUE)
   
   #select first 3 records with the highest score 
-  #for(i in 1:length(lista)){
-  #  lista[[i]] = lista[[i]][1:3]
-  #}
+  for(i in 1:length(lista)){
+    lista[[i]] = lista[[i]][1:3]
+  }
   
   return(lista)
 }
@@ -83,5 +84,8 @@ clusterExport(cls, "df2")
 
 ichunks<-clusterSplit(cls, 1:nrow(df1))
 plista<-clusterApply(cls, ichunks, pmatch )
+#makes plista to have the same structure as in the serial case
+for(i in 1:length(plista))
+  plista[[i]]<-unlist(plista[[i]][1])
 
 stopCluster(cls)
